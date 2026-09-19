@@ -1,6 +1,9 @@
 package dev.hydranet.worldtime
 
 import android.text.format.DateFormat
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -65,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -78,6 +82,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import java.time.Duration
@@ -311,8 +316,36 @@ private fun TimelineCard(
     val hapticFeedback = LocalHapticFeedback.current
     val rowHeightPx = with(density) { RowHeight.toPx() }
     var draggingZoneId by remember { mutableStateOf<String?>(null) }
-    var dragCenterY by remember { mutableFloatStateOf(0f) }
-    val currentZones by rememberUpdatedState(zones)
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var dragSourceIndex by remember { mutableStateOf(-1) }
+    var dragTargetIndex by remember { mutableStateOf(-1) }
+    var dragSnapshot by remember { mutableStateOf<List<ZoneId>?>(null) }
+    val displayedZones = dragSnapshot ?: zones
+
+    fun rowTranslation(index: Int): Float = when {
+        index == dragSourceIndex -> dragOffsetY
+        dragSourceIndex < dragTargetIndex && index in (dragSourceIndex + 1)..dragTargetIndex ->
+            -rowHeightPx
+        dragSourceIndex > dragTargetIndex && index in dragTargetIndex..<dragSourceIndex ->
+            rowHeightPx
+        else -> 0f
+    }
+
+    fun finishDrag(commit: Boolean) {
+        val snapshot = dragSnapshot
+        if (commit && snapshot != null && dragSourceIndex in snapshot.indices &&
+            dragTargetIndex in snapshot.indices && dragSourceIndex != dragTargetIndex
+        ) {
+            onZonesChange(snapshot.toMutableList().apply {
+                add(dragTargetIndex, removeAt(dragSourceIndex))
+            })
+        }
+        draggingZoneId = null
+        dragSnapshot = null
+        dragSourceIndex = -1
+        dragTargetIndex = -1
+        dragOffsetY = 0f
+    }
     LaunchedEffect(start, selectedIndex) {
         val target = with(density) { (SlotWidth * (selectedIndex - 2).coerceAtLeast(0)).roundToPx() }
         scrollState.scrollTo(target)
@@ -335,9 +368,9 @@ private fun TimelineCard(
                         Text("CITY / TIME", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    zones.forEach { zone ->
+                    displayedZones.forEachIndexed { index, zone ->
                         key(zone.id) {
-                            val index = zones.indexOf(zone)
+                            val currentIndex = zones.indexOf(zone)
                             ZoneLabel(
                                 zone = zone,
                                 homeZone = homeZone,
@@ -345,36 +378,41 @@ private fun TimelineCard(
                                 homeDate = selected.atZone(homeZone).toLocalDate(),
                                 is24Hour = is24Hour,
                                 isDragging = draggingZoneId == zone.id,
-                                showDivider = index < zones.lastIndex,
+                                dragInProgress = dragSnapshot != null,
+                                translationY = rowTranslation(index),
+                                showDivider = index < displayedZones.lastIndex,
                                 canRemove = zones.size > 1,
                                 onSetHome = { onHomeZoneChange(zone) },
                                 onRemove = { onZonesChange(zones.filterNot { it == zone }) },
                                 onDragStart = {
+                                    dragSnapshot = zones
                                     draggingZoneId = zone.id
-                                    dragCenterY = (index + 0.5f) * rowHeightPx
+                                    dragSourceIndex = index
+                                    dragTargetIndex = index
+                                    dragOffsetY = 0f
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 },
                                 onDrag = { deltaY ->
-                                    dragCenterY += deltaY
-                                    val active = currentZones
-                                    val from = active.indexOfFirst { it.id == zone.id }
-                                    val to = (dragCenterY / rowHeightPx).toInt()
-                                        .coerceIn(0, active.lastIndex)
-                                    if (from >= 0 && to != from) {
-                                        onZonesChange(active.toMutableList().apply {
-                                            add(to, removeAt(from))
-                                        })
+                                    val snapshot = dragSnapshot
+                                    if (snapshot != null && dragSourceIndex in snapshot.indices) {
+                                        val minimum = -dragSourceIndex * rowHeightPx
+                                        val maximum = (snapshot.lastIndex - dragSourceIndex) * rowHeightPx
+                                        dragOffsetY = (dragOffsetY + deltaY).coerceIn(minimum, maximum)
+                                        val center = (dragSourceIndex + 0.5f) * rowHeightPx + dragOffsetY
+                                        dragTargetIndex = (center / rowHeightPx).toInt()
+                                            .coerceIn(0, snapshot.lastIndex)
                                     }
                                 },
-                                onDragEnd = { draggingZoneId = null },
+                                onDragEnd = { finishDrag(commit = true) },
+                                onDragCancel = { finishDrag(commit = false) },
                                 onMoveUp = {
-                                    if (index > 0) onZonesChange(zones.toMutableList().apply {
-                                        add(index - 1, removeAt(index))
+                                    if (currentIndex > 0) onZonesChange(zones.toMutableList().apply {
+                                        add(currentIndex - 1, removeAt(currentIndex))
                                     })
                                 },
                                 onMoveDown = {
-                                    if (index < zones.lastIndex) onZonesChange(zones.toMutableList().apply {
-                                        add(index + 1, removeAt(index))
+                                    if (currentIndex in 0..<zones.lastIndex) onZonesChange(zones.toMutableList().apply {
+                                        add(currentIndex + 1, removeAt(currentIndex))
                                     })
                                 },
                             )
@@ -399,18 +437,17 @@ private fun TimelineCard(
                                 )
                             }
                         }
-                        zones.forEach { zone ->
-                            Row {
-                                slots.forEachIndexed { index, instant ->
-                                    TimelineSlot(
-                                        instant = instant,
-                                        previous = slots.getOrNull(index - 1),
-                                        next = slots.getOrNull(index + 1),
-                                        zone = zone,
-                                        is24Hour = is24Hour,
-                                        onClick = { onSelectTime(instant) },
-                                    )
-                                }
+                        displayedZones.forEachIndexed { index, zone ->
+                            key(zone.id) {
+                                TimelineZoneRow(
+                                    slots = slots,
+                                    zone = zone,
+                                    is24Hour = is24Hour,
+                                    isDragging = draggingZoneId == zone.id,
+                                    dragInProgress = dragSnapshot != null,
+                                    translationY = rowTranslation(index),
+                                    onSelectTime = onSelectTime,
+                                )
                             }
                         }
                     }
@@ -436,6 +473,8 @@ private fun ZoneLabel(
     homeDate: LocalDate,
     is24Hour: Boolean,
     isDragging: Boolean,
+    dragInProgress: Boolean,
+    translationY: Float,
     showDivider: Boolean,
     canRemove: Boolean,
     onSetHome: () -> Unit,
@@ -443,6 +482,7 @@ private fun ZoneLabel(
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
 ) {
@@ -450,6 +490,17 @@ private fun ZoneLabel(
     val currentDragStart by rememberUpdatedState(onDragStart)
     val currentDrag by rememberUpdatedState(onDrag)
     val currentDragEnd by rememberUpdatedState(onDragEnd)
+    val currentDragCancel by rememberUpdatedState(onDragCancel)
+    val settledTranslationY by key(dragInProgress) {
+        animateFloatAsState(
+            targetValue = if (isDragging) 0f else translationY,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "City row placement",
+        )
+    }
     val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
     val local = selected.atZone(zone)
     val dayDifference = ChronoUnit.DAYS.between(homeDate, local.toLocalDate())
@@ -473,8 +524,14 @@ private fun ZoneLabel(
                         currentDrag(dragAmount.y)
                     },
                     onDragEnd = { currentDragEnd() },
-                    onDragCancel = { currentDragEnd() },
+                    onDragCancel = { currentDragCancel() },
                 )
+            }
+            .zIndex(if (isDragging) 1f else 0f)
+            .graphicsLayer {
+                this.translationY = if (isDragging) translationY else settledTranslationY
+                shadowElevation = if (isDragging) 8.dp.toPx() else 0f
+                shape = RoundedCornerShape(8.dp)
             }
             .semantics {
                 customActions = listOf(
@@ -599,6 +656,47 @@ private fun HeaderSlot(
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 color = colors.onSurface,
                 maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TimelineZoneRow(
+    slots: List<Instant>,
+    zone: ZoneId,
+    is24Hour: Boolean,
+    isDragging: Boolean,
+    dragInProgress: Boolean,
+    translationY: Float,
+    onSelectTime: (Instant) -> Unit,
+) {
+    val settledTranslationY by key(dragInProgress) {
+        animateFloatAsState(
+            targetValue = if (isDragging) 0f else translationY,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "Timeline row placement",
+        )
+    }
+
+    Row(
+        modifier = Modifier
+            .zIndex(if (isDragging) 1f else 0f)
+            .graphicsLayer {
+                this.translationY = if (isDragging) translationY else settledTranslationY
+            },
+    ) {
+        slots.forEachIndexed { index, instant ->
+            TimelineSlot(
+                instant = instant,
+                previous = slots.getOrNull(index - 1),
+                next = slots.getOrNull(index + 1),
+                zone = zone,
+                is24Hour = is24Hour,
+                onClick = { onSelectTime(instant) },
             )
         }
     }
