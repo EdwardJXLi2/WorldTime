@@ -53,11 +53,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -125,15 +127,21 @@ fun WorldTimeScreen(
     onShare: () -> Unit,
 ) {
     var showZonePicker by remember { mutableStateOf(false) }
+    var timelineResetRequest by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
     val homeDateTime = selected.atZone(homeZone)
+
+    fun resetToNow() {
+        onNow()
+        timelineResetRequest++
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("World Time") },
                 actions = {
-                    IconButton(onClick = onNow) {
+                    IconButton(onClick = ::resetToNow) {
                         Icon(Icons.Outlined.Update, contentDescription = "Jump to now")
                     }
                     IconButton(onClick = onShare) {
@@ -154,55 +162,60 @@ fun WorldTimeScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+        PullToRefreshBox(
+            isRefreshing = false,
+            onRefresh = ::resetToNow,
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
         ) {
-            SelectedMomentCard(
-                homeDateTime = homeDateTime,
-                followingNow = followingNow,
-                onPickDate = {
-                    android.app.DatePickerDialog(
-                        context,
-                        { _, year, month, day ->
-                            onSelectTime(WorldTimeData.onDate(
-                                selected, homeZone, LocalDate.of(year, month + 1, day),
-                            ))
-                        },
-                        homeDateTime.year,
-                        homeDateTime.monthValue - 1,
-                        homeDateTime.dayOfMonth,
-                    ).show()
-                },
-                onPickTime = {
-                    android.app.TimePickerDialog(
-                        context,
-                        { _, hour, minute ->
-                            onSelectTime(WorldTimeData.onTime(
-                                selected, homeZone, LocalTime.of(hour, minute),
-                            ))
-                        },
-                        homeDateTime.hour,
-                        homeDateTime.minute,
-                        DateFormat.is24HourFormat(context),
-                    ).show()
-                },
-                onNow = onNow,
-            )
-            Spacer(Modifier.height(12.dp))
-            TimelineCard(
-                zones = zones,
-                homeZone = homeZone,
-                selected = selected,
-                followingNow = followingNow,
-                onSelectTime = onSelectTime,
-                onZonesChange = onZonesChange,
-                onHomeZoneChange = onHomeZoneChange,
-            )
-            Spacer(Modifier.height(88.dp))
+            Column(
+                modifier = Modifier.fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            ) {
+                SelectedMomentCard(
+                    homeDateTime = homeDateTime,
+                    followingNow = followingNow,
+                    onPickDate = {
+                        android.app.DatePickerDialog(
+                            context,
+                            { _, year, month, day ->
+                                onSelectTime(WorldTimeData.onDate(
+                                    selected, homeZone, LocalDate.of(year, month + 1, day),
+                                ))
+                            },
+                            homeDateTime.year,
+                            homeDateTime.monthValue - 1,
+                            homeDateTime.dayOfMonth,
+                        ).show()
+                    },
+                    onPickTime = {
+                        android.app.TimePickerDialog(
+                            context,
+                            { _, hour, minute ->
+                                onSelectTime(WorldTimeData.onTime(
+                                    selected, homeZone, LocalTime.of(hour, minute),
+                                ))
+                            },
+                            homeDateTime.hour,
+                            homeDateTime.minute,
+                            DateFormat.is24HourFormat(context),
+                        ).show()
+                    },
+                    onNow = ::resetToNow,
+                )
+                Spacer(Modifier.height(12.dp))
+                TimelineCard(
+                    zones = zones,
+                    homeZone = homeZone,
+                    selected = selected,
+                    followingNow = followingNow,
+                    resetRequest = timelineResetRequest,
+                    onSelectTime = onSelectTime,
+                    onZonesChange = onZonesChange,
+                    onHomeZoneChange = onHomeZoneChange,
+                )
+                Spacer(Modifier.height(88.dp))
+            }
         }
     }
 
@@ -302,6 +315,7 @@ private fun TimelineCard(
     homeZone: ZoneId,
     selected: Instant,
     followingNow: Boolean,
+    resetRequest: Int,
     onSelectTime: (Instant) -> Unit,
     onZonesChange: (List<ZoneId>) -> Unit,
     onHomeZoneChange: (ZoneId) -> Unit,
@@ -346,7 +360,7 @@ private fun TimelineCard(
         dragTargetIndex = -1
         dragOffsetY = 0f
     }
-    LaunchedEffect(start, selectedIndex) {
+    LaunchedEffect(start, selectedIndex, resetRequest) {
         val target = with(density) { (SlotWidth * (selectedIndex - 2).coerceAtLeast(0)).roundToPx() }
         scrollState.scrollTo(target)
     }
