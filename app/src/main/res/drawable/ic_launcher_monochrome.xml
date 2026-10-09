@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Keep a transparent gap around the front clock. -->
+    <group>
+        <clip-path
+            android:fillType="evenOdd"
+            android:pathData="M0,0h108v108h-108zM62,39a23,23 0,1 1,0 46a23,23 0,1 1,0 -46z" />
+        <!-- The hand outline cuts through the face instead of painting over it. -->
+        <path
+            android:fillColor="#000000"
+            android:fillType="evenOdd"
+            android:pathData="M44,27a18,18 0,1 1,0 36a18,18 0,1 1,0 -36zM42.25,34v10.063l-5.221,3.481a1.75,1.75 0,0 0,1.942 2.912l6,-4a1.75,1.75 0,0 0,0.779 -1.456v-11a1.75,1.75 0,0 0,-3.5 0z" />
+    </group>
+    <path
+        android:fillColor="#000000"
+        android:fillType="evenOdd"
+        android:pathData="M62,42a20,20 0,1 1,0 40a20,20 0,1 1,0 -40zM60,49v13a2,2 0,0 0,0.94 1.696l8,5a2,2 0,0 0,2.12 -3.392l-7.06,-4.411v-11.893a2,2 0,0 0,-4 0z" />
+</vector>
