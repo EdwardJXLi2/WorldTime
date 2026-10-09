@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
@@ -365,7 +366,12 @@ private fun TimelineCard(
         scrollState.scrollTo(target)
     }
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -560,7 +566,7 @@ private fun ZoneLabel(
                 )
             }
             .background(if (isDragging) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                else MaterialTheme.colorScheme.surface)
+                else MaterialTheme.colorScheme.surfaceContainer)
             .drawBehind {
                 if (showDivider) {
                     val stroke = 1.dp.toPx()
@@ -636,9 +642,9 @@ private fun HeaderSlot(
         previous.atZone(homeZone).toLocalDate() != local.toLocalDate()
     val colors = MaterialTheme.colorScheme
     val dayBackground = if (local.toLocalDate().toEpochDay() % 2L == 0L) {
-        colors.surface
-    } else {
         colors.surfaceContainer
+    } else {
+        colors.surfaceContainerHigh
     }
     Box(
         modifier = Modifier.width(SlotWidth).height(HeaderHeight)
@@ -757,7 +763,7 @@ private fun TimelineSlot(
 
     Box(
         modifier = Modifier.width(SlotWidth).height(RowHeight)
-            .background(colors.surface)
+            .background(colors.surfaceContainer)
             .clickable(onClick = onClick),
     ) {
         Column(
