@@ -8,7 +8,7 @@ An Android app for comparing local times across cities.
 - Search, add, reorder, and remove cities; choose a home time zone.
 - Share city times and a link to the selected view.
 - Resizable home screen widget with live clocks and an hourly comparison.
-- Material 3 dynamic colors with light and dark themes.
+- Matching Material 3 dynamic colors and light/dark themes in the app and widget.
 
 ## Requirements
 

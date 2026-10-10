@@ -1,5 +1,6 @@
 package dev.hydranet.worldtime
 
+import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -23,15 +24,15 @@ private val LightColors = lightColorScheme(
     tertiary = Color(0xFF7D5260),
 )
 
+internal fun worldTimeColorScheme(context: Context, dark: Boolean) = when {
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && dark -> dynamicDarkColorScheme(context)
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> dynamicLightColorScheme(context)
+    dark -> DarkColors
+    else -> LightColors
+}
+
 @Composable
 fun WorldTimeTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    val context = LocalContext.current
-    val colors = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && dark -> dynamicDarkColorScheme(context)
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> dynamicLightColorScheme(context)
-        dark -> DarkColors
-        else -> LightColors
-    }
+    val colors = worldTimeColorScheme(LocalContext.current, isSystemInDarkTheme())
     MaterialTheme(colorScheme = colors, content = content)
 }

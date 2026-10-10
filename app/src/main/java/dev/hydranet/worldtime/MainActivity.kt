@@ -18,6 +18,11 @@ import java.time.ZoneId
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+    override fun onResume() {
+        super.onResume()
+        WorldTimeWidgetProvider.refreshAll(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

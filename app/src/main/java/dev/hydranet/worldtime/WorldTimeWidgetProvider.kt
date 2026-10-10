@@ -7,9 +7,10 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -23,6 +24,8 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.graphics.createBitmap
+import androidx.compose.material3.ColorScheme
+import androidx.compose.ui.graphics.toArgb
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -110,6 +113,14 @@ class WorldTimeWidgetProvider : AppWidgetProvider() {
             context: Context, size: SizeF, zones: List<ZoneId>, home: ZoneId, now: Instant,
         ): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.world_time_widget)
+            val dark = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+                Configuration.UI_MODE_NIGHT_YES
+            val colors = worldTimeColorScheme(context, dark)
+            views.setColorStateList(R.id.widget_root, "setBackgroundTintList",
+                ColorStateList.valueOf(colors.surfaceContainer.toArgb()))
+            listOf(R.id.widget_title, R.id.widget_label_header, R.id.widget_more).forEach { viewId ->
+                views.setTextColor(viewId, colors.onSurfaceVariant.toArgb())
+            }
             val bodyHeight = size.height - 16f - 32f - HEADER_HEIGHT
             val screenDensity = context.resources.displayMetrics.density
             val rowHeight = ((bodyHeight / zones.size).coerceIn(56f, ROW_HEIGHT) * screenDensity)
@@ -134,6 +145,9 @@ class WorldTimeWidgetProvider : AppWidgetProvider() {
                 row.setViewLayoutHeight(R.id.widget_city_row, rowHeight, TypedValue.COMPLEX_UNIT_DIP)
                 row.setTextViewText(R.id.widget_city, if (zone == home) "⌂ $city" else city)
                 row.setString(R.id.widget_clock, "setTimeZone", zone.id)
+                row.setTextColor(R.id.widget_city, colors.onSurface.toArgb())
+                row.setTextColor(R.id.widget_clock, colors.primary.toArgb())
+                row.setTextColor(R.id.widget_offset, colors.onSurfaceVariant.toArgb())
                 row.setTextViewText(R.id.widget_offset,
                     "${WorldTimeData.offsetLabel(zone, now).removeSuffix(":00")} · $day")
                 row.setContentDescription(R.id.widget_city_row, "$city, ${zone.id}, $day")
@@ -142,7 +156,7 @@ class WorldTimeWidgetProvider : AppWidgetProvider() {
             val width = (size.width - 16f - LABEL_WIDTH).coerceAtLeast(80f)
             val height = HEADER_HEIGHT + rowHeight * visible.size
             views.setViewLayoutHeight(R.id.widget_timeline, height, TypedValue.COMPLEX_UNIT_DIP)
-            populateTimeline(context, views, width, rowHeight, visible, home, now)
+            populateTimeline(context, views, width, rowHeight, visible, home, now, colors)
             views.setContentDescription(R.id.widget_timeline,
                 "Hourly comparison around now in ${WorldTimeData.cityName(home)}. " +
                     visible.joinToString { WorldTimeData.cityName(it) })
@@ -159,6 +173,7 @@ class WorldTimeWidgetProvider : AppWidgetProvider() {
         private fun populateTimeline(
             context: Context, views: RemoteViews, width: Float, rowHeight: Float,
             zones: List<ZoneId>, home: ZoneId, now: Instant,
+            colors: ColorScheme,
         ) {
             val columns = floor(width / 40f).toInt().coerceIn(3, 9)
                 .let { if (it % 2 == 0) it - 1 else it }
@@ -176,6 +191,12 @@ class WorldTimeWidgetProvider : AppWidgetProvider() {
                 val selected = index == center
                 val column = RemoteViews(context.packageName, R.layout.world_time_widget_column)
                 val header = RemoteViews(context.packageName, R.layout.world_time_widget_hour_header)
+                val headerDate = instant.atZone(home).toLocalDate()
+                val headerColor = if (headerDate.toEpochDay() % 2L == 0L) colors.surfaceContainer
+                    else colors.surfaceContainerHigh
+                header.setInt(R.id.widget_hour_header, "setBackgroundColor", headerColor.toArgb())
+                header.setTextColor(R.id.widget_hour_hint, colors.primary.toArgb())
+                header.setTextColor(R.id.widget_header_hour, colors.onSurface.toArgb())
                 header.setTextViewText(R.id.widget_hour_hint,
                     if (selected) context.getString(R.string.widget_now) else "")
                 header.setTextViewText(R.id.widget_header_hour,
@@ -200,6 +221,16 @@ class WorldTimeWidgetProvider : AppWidgetProvider() {
                         if (local.minute == 0) 16f else 12f)
                     cell.setInt(R.id.widget_hour_band, "setBackgroundResource",
                         bandBackground(local.hour, index, columns))
+                    val (background, foreground) = when (local.hour) {
+                        in 6..8 -> colors.secondaryContainer.copy(alpha = 0.62f) to colors.onSecondaryContainer
+                        in 9..17 -> colors.surfaceVariant.copy(alpha = 0.28f) to colors.onSurface
+                        in 18..21 -> colors.primaryContainer.copy(alpha = 0.58f) to colors.onPrimaryContainer
+                        else -> colors.primaryContainer.copy(alpha = 0.92f) to colors.onPrimaryContainer
+                    }
+                    cell.setColorStateList(R.id.widget_hour_band, "setBackgroundTintList",
+                        ColorStateList.valueOf(background.toArgb()))
+                    cell.setTextColor(R.id.widget_hour_value, foreground.toArgb())
+                    cell.setTextColor(R.id.widget_hour_period, foreground.copy(alpha = 0.78f).toArgb())
                     column.addView(R.id.widget_column, cell)
                 }
                 views.addView(R.id.widget_timeline_columns, column)
@@ -215,10 +246,10 @@ class WorldTimeWidgetProvider : AppWidgetProvider() {
             val bounds = RectF(center * slotWidth + 0.75f, 0.75f,
                 (center + 1) * slotWidth - 0.75f, height - 0.75f)
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.argb(25, 187, 200, 240)
+                color = colors.primary.copy(alpha = 0.10f).toArgb()
             }
             canvas.drawRoundRect(bounds, 8f, 8f, paint)
-            paint.color = Color.rgb(187, 200, 240)
+            paint.color = colors.primary.toArgb()
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = 1.5f
             canvas.drawRoundRect(bounds, 8f, 8f, paint)
