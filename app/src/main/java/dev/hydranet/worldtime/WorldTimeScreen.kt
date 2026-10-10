@@ -104,16 +104,6 @@ private val HeaderHeight = 56.dp
 private const val TimelineHours = 48L
 private val DayGap = 6.dp
 
-private enum class TimeBand { NIGHT, MORNING, DAY, EVENING }
-
-private fun timeBand(hour: Int): TimeBand = when (hour) {
-    in 0..5 -> TimeBand.NIGHT
-    in 6..8 -> TimeBand.MORNING
-    in 9..17 -> TimeBand.DAY
-    in 18..21 -> TimeBand.EVENING
-    else -> TimeBand.NIGHT
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorldTimeScreen(
@@ -734,7 +724,6 @@ private fun TimelineSlot(
     val local = instant.atZone(zone)
     val newDay = previous != null &&
         previous.atZone(zone).toLocalDate() != local.toLocalDate()
-    val band = timeBand(local.hour)
     val previousLocal = previous?.atZone(zone)
     val nextLocal = next?.atZone(zone)
     val roundedStart = previousLocal == null || previousLocal.toLocalDate() != local.toLocalDate()
@@ -746,17 +735,7 @@ private fun TimelineSlot(
         bottomEnd = if (roundedEnd) 8.dp else 0.dp,
     )
     val colors = MaterialTheme.colorScheme
-    val background = when (band) {
-        TimeBand.NIGHT -> colors.primaryContainer.copy(alpha = 0.92f)
-        TimeBand.MORNING -> colors.secondaryContainer.copy(alpha = 0.62f)
-        TimeBand.DAY -> colors.surfaceVariant.copy(alpha = 0.28f)
-        TimeBand.EVENING -> colors.primaryContainer.copy(alpha = 0.58f)
-    }
-    val foreground = when (band) {
-        TimeBand.NIGHT, TimeBand.EVENING -> colors.onPrimaryContainer
-        TimeBand.MORNING -> colors.onSecondaryContainer
-        TimeBand.DAY -> colors.onSurface
-    }
+    val (background, foreground) = colors.timelineBandColors(local.hour)
     val hour = if (is24Hour) local.hour.toString().padStart(2, '0')
         else ((local.hour + 11) % 12 + 1).toString()
     val time = if (local.minute == 0) hour else "$hour:${local.minute.toString().padStart(2, '0')}"
@@ -778,7 +757,7 @@ private fun TimelineSlot(
                     text = DateTimeFormatter.ofPattern("EEE").format(local).uppercase(),
                     fontSize = 9.sp,
                     lineHeight = 10.sp,
-                    color = foreground.copy(alpha = 0.78f),
+                    color = colors.timelineDetailColor(foreground),
                     maxLines = 1,
                 )
                 Text(
@@ -803,7 +782,7 @@ private fun TimelineSlot(
                         text = if (local.hour < 12) "am" else "pm",
                         fontSize = 10.sp,
                         lineHeight = 10.sp,
-                        color = foreground.copy(alpha = 0.78f),
+                        color = colors.timelineDetailColor(foreground),
                     )
                 }
             }

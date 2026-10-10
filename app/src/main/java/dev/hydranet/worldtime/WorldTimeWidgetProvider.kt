@@ -221,16 +221,11 @@ class WorldTimeWidgetProvider : AppWidgetProvider() {
                         if (local.minute == 0) 16f else 12f)
                     cell.setInt(R.id.widget_hour_band, "setBackgroundResource",
                         bandBackground(local.hour, index, columns))
-                    val (background, foreground) = when (local.hour) {
-                        in 6..8 -> colors.secondaryContainer.copy(alpha = 0.62f) to colors.onSecondaryContainer
-                        in 9..17 -> colors.surfaceVariant.copy(alpha = 0.28f) to colors.onSurface
-                        in 18..21 -> colors.primaryContainer.copy(alpha = 0.58f) to colors.onPrimaryContainer
-                        else -> colors.primaryContainer.copy(alpha = 0.92f) to colors.onPrimaryContainer
-                    }
+                    val (background, foreground) = colors.timelineBandColors(local.hour)
                     cell.setColorStateList(R.id.widget_hour_band, "setBackgroundTintList",
                         ColorStateList.valueOf(background.toArgb()))
                     cell.setTextColor(R.id.widget_hour_value, foreground.toArgb())
-                    cell.setTextColor(R.id.widget_hour_period, foreground.copy(alpha = 0.78f).toArgb())
+                    cell.setTextColor(R.id.widget_hour_period, colors.timelineDetailColor(foreground).toArgb())
                     column.addView(R.id.widget_column, cell)
                 }
                 views.addView(R.id.widget_timeline_columns, column)
