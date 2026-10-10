@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#1E2027">
+    <TextView
+        android:id="@+id/widget_hour_hint"
+        android:layout_width="match_parent"
+        android:layout_height="12dp"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textColor="#BBC8F0"
+        android:textSize="9sp" />
+    <TextView
+        android:id="@+id/widget_header_hour"
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textColor="#E7E8EF"
+        android:textSize="14sp" />
+</LinearLayout>

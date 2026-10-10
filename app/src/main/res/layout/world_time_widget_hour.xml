@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_hour_row"
+    android:layout_width="match_parent"
+    android:layout_height="64dp">
+    <LinearLayout
+        android:id="@+id/widget_hour_band"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_gravity="center_vertical"
+        android:gravity="center"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/widget_hour_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="#E7E8EF"
+            android:textSize="16sp" />
+        <TextView
+            android:id="@+id/widget_hour_period"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="#BBC8F0"
+            android:textSize="11sp" />
+    </LinearLayout>
+</FrameLayout>
