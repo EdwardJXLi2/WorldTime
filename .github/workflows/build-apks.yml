@@ -1,0 +1,122 @@
+name: Build APKs
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APKs
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager --install "platforms;android-36.1" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Run unit tests and build debug APK
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug
+
+      - name: Restore release keystore
+        if: github.event_name != 'pull_request'
+        env:
+          WORLDTIME_KEYSTORE_BASE64: ${{ secrets.WORLDTIME_KEYSTORE_BASE64 }}
+          WORLDTIME_KEYSTORE_PASSWORD: ${{ secrets.WORLDTIME_KEYSTORE_PASSWORD }}
+          WORLDTIME_KEY_ALIAS: ${{ secrets.WORLDTIME_KEY_ALIAS }}
+          WORLDTIME_KEY_PASSWORD: ${{ secrets.WORLDTIME_KEY_PASSWORD }}
+        run: |
+          if [ -z "$WORLDTIME_KEYSTORE_BASE64" ] || [ -z "$WORLDTIME_KEYSTORE_PASSWORD" ] || [ -z "$WORLDTIME_KEY_ALIAS" ] || [ -z "$WORLDTIME_KEY_PASSWORD" ]; then
+            echo "::error::Missing one or more WORLDTIME release signing secrets. See README.md."
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$RUNNER_TEMP/keystores"
+          printf '%s' "$WORLDTIME_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/keystores/worldtime-release.jks"
+
+      - name: Build signed release APK
+        if: github.event_name != 'pull_request'
+        env:
+          WORLDTIME_KEYSTORE_FILE: ${{ runner.temp }}/keystores/worldtime-release.jks
+          WORLDTIME_KEYSTORE_PASSWORD: ${{ secrets.WORLDTIME_KEYSTORE_PASSWORD }}
+          WORLDTIME_KEY_ALIAS: ${{ secrets.WORLDTIME_KEY_ALIAS }}
+          WORLDTIME_KEY_PASSWORD: ${{ secrets.WORLDTIME_KEY_PASSWORD }}
+        run: |
+          ./gradlew :app:assembleRelease
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+
+      - name: Remove release keystore
+        if: always() && github.event_name != 'pull_request'
+        run: rm -f "$RUNNER_TEMP/keystores/worldtime-release.jks"
+
+      - name: Stage APKs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/worldtime-debug-latest.apk
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            cp app/build/outputs/apk/release/app-release.apk dist/worldtime-release-latest.apk
+          fi
+
+      - name: Upload latest APK artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: worldtime-latest-apks
+          path: dist/*.apk
+          if-no-files-found: error
+
+  publish-latest:
+    name: Publish latest release
+    runs-on: ubuntu-24.04
+    needs: build
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: write
+    concurrency:
+      group: latest-apk-release
+      cancel-in-progress: false
+
+    steps:
+      - name: Download APK artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: worldtime-latest-apks
+          path: dist
+
+      - name: Publish latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -s dist/worldtime-debug-latest.apk
+          test -s dist/worldtime-release-latest.apk
+          gh release delete latest --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/latest" || true
+          gh release create latest dist/*.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Latest Build" \
+            --notes "Installable debug and signed release APKs for $GITHUB_SHA. Requires Android 14 or newer." \
+            --latest

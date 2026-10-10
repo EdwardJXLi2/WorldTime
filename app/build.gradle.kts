@@ -3,6 +3,17 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val releaseKeystoreFile = providers.environmentVariable("WORLDTIME_KEYSTORE_FILE")
+val releaseKeystorePassword = providers.environmentVariable("WORLDTIME_KEYSTORE_PASSWORD")
+val releaseKeyAlias = providers.environmentVariable("WORLDTIME_KEY_ALIAS")
+val releaseKeyPassword = providers.environmentVariable("WORLDTIME_KEY_PASSWORD")
+val hasReleaseSigning = listOf(
+    releaseKeystoreFile,
+    releaseKeystorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+).all { it.isPresent }
+
 android {
     namespace = "dev.hydranet.worldtime"
     compileSdk {
@@ -21,8 +32,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseKeystoreFile.get())
+                storePassword = releaseKeystorePassword.get()
+                keyAlias = releaseKeyAlias.get()
+                keyPassword = releaseKeyPassword.get()
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
