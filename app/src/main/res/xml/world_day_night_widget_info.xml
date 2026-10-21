@@ -2,6 +2,7 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/day_night_widget_description"
     android:initialLayout="@layout/world_day_night_widget"
+    android:previewImage="@drawable/world_day_night_widget_preview"
     android:minWidth="250dp"
     android:minHeight="96dp"
     android:minResizeWidth="180dp"
