@@ -205,6 +205,8 @@ fun WorldTimeScreen(
                     onZonesChange = onZonesChange,
                     onHomeZoneChange = onHomeZoneChange,
                 )
+                Spacer(Modifier.height(12.dp))
+                WorldDayNightCard(selected = selected)
                 Spacer(Modifier.height(88.dp))
             }
         }
