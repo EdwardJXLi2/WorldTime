@@ -76,18 +76,7 @@ internal fun WorldDayNightCard(selected: Instant, homeZone: ZoneId) {
     val zoneRegions = ImageVector.vectorResource(R.drawable.world_map_zone_regions)
     val homeOffsetMinutes = homeZone.rules.getStandardOffset(selected).totalSeconds / 60
     val homeRegion = remember(zoneRegions, homeOffsetMinutes) {
-        Path().apply {
-            fillType = PathFillType.EvenOdd
-            for (index in 0 until zoneRegions.root.size) {
-                val region = zoneRegions.root[index] as VectorGroup
-                if (region.name == "utc_$homeOffsetMinutes") {
-                    for (polygonIndex in 0 until region.size) {
-                        val polygon = region[polygonIndex] as VectorPath
-                        addPath(PathParser().addPathNodes(polygon.pathData).toPath())
-                    }
-                }
-            }
-        }
+        homeRegionPath(zoneRegions, homeOffsetMinutes)
     }
     val timeZones = painterResource(R.drawable.world_map_time_zones)
     val timeFormat = remember { DateTimeFormatter.ofPattern("HH:mm 'UTC'").withZone(ZoneOffset.UTC) }
@@ -173,7 +162,20 @@ internal fun WorldDayNightCard(selected: Instant, homeZone: ZoneId) {
     }
 }
 
-private fun nightPath(sun: SolarPosition, altitude: Double): Path = Path().apply {
+internal fun homeRegionPath(regions: ImageVector, offsetMinutes: Int): Path = Path().apply {
+    fillType = PathFillType.EvenOdd
+    for (index in 0 until regions.root.size) {
+        val region = regions.root[index] as VectorGroup
+        if (region.name == "utc_$offsetMinutes") {
+            for (polygonIndex in 0 until region.size) {
+                val polygon = region[polygonIndex] as VectorPath
+                addPath(PathParser().addPathNodes(polygon.pathData).toPath())
+            }
+        }
+    }
+}
+
+internal fun nightPath(sun: SolarPosition, altitude: Double): Path = Path().apply {
     val center = sun.longitude + 360.0
     // Sample both sides of the night region, including polar day/night, in map coordinates.
     for (step in 0..360) {

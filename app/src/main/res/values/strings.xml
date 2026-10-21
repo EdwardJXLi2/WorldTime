@@ -9,4 +9,8 @@
     <string name="widget_tomorrow">Tomorrow</string>
     <string name="widget_now">NOW</string>
     <string name="widget_timeline_description">Hourly comparison around now</string>
+    <string name="day_night_widget_name">Day and Night</string>
+    <string name="day_night_widget_title">DAY &amp; NIGHT</string>
+    <string name="day_night_widget_description">World daylight, twilight, Sun and Moon positions, and your home time zone.</string>
+    <string name="day_night_widget_map_description">World daylight map for %1$s. Dark shading shows night and lighter shading shows twilight. The highlighted region matches the standard UTC offset of %2$s. Sun and Moon icons show where each is overhead.</string>
 </resources>

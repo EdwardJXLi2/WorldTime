@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         WorldTimeWidgetProvider.refreshAll(this)
+        WorldDayNightWidgetProvider.refreshAll(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

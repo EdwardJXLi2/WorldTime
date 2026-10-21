@@ -39,6 +39,7 @@ object WorldTimeData {
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
             .edit().putString(ZONES_KEY, zones.joinToString("|") { it.id }).apply()
         WorldTimeWidgetProvider.refreshAll(context)
+        WorldDayNightWidgetProvider.refreshAll(context)
     }
 
     fun loadHomeZone(context: Context): ZoneId {
@@ -51,6 +52,7 @@ object WorldTimeData {
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
             .edit().putString(HOME_ZONE_KEY, zone.id).apply()
         WorldTimeWidgetProvider.refreshAll(context)
+        WorldDayNightWidgetProvider.refreshAll(context)
     }
 
     fun cityName(zone: ZoneId): String = zone.id.substringAfterLast('/').replace('_', ' ')

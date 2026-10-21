@@ -25,6 +25,20 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/world_time_widget_info" />
         </receiver>
+        <receiver
+            android:name=".WorldDayNightWidgetProvider"
+            android:exported="false"
+            android:label="@string/day_night_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/world_day_night_widget_info" />
+        </receiver>
         <activity
             android:name=".MainActivity"
             android:exported="true">
