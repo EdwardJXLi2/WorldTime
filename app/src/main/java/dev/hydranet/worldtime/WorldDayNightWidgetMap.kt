@@ -28,7 +28,8 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 internal fun renderDayNightMap(
-    context: Context, width: Int, density: Float, now: Instant, home: ZoneId, colors: ColorScheme,
+    context: Context, width: Int, density: Float, now: Instant, home: ZoneId,
+    homeLocation: MapLocation?, colors: ColorScheme,
 ): Bitmap {
     val bitmap = createBitmap(width, width / 2).apply {
         this.density = (density * DisplayMetrics.DENSITY_DEFAULT).roundToInt()
@@ -111,7 +112,6 @@ internal fun renderDayNightMap(
         if (moonAnchor.second + 36f * density < bitmap.height) 24f * density else -24f * density
     } else 0f
     marker(moonAnchor, Icons.Filled.NightlightRound, colors.primary, moonOffset)
-    val homeLocation = readCityLocations(context.resources.openRawResource(R.raw.time_zone_locations).reader())[home.id]
     if (homeLocation != null) {
         val (x, y) = point(homeLocation)
         paint.color = colors.surfaceContainerHighest.toArgb()

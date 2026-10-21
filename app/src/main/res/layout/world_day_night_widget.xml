@@ -1,45 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/day_night_widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
-    android:orientation="vertical"
-    android:padding="8dp">
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp">
 
     <LinearLayout
-        android:id="@+id/day_night_widget_header"
+        android:id="@+id/day_night_widget_content"
         android:layout_width="match_parent"
-        android:layout_height="24dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/day_night_widget_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/day_night_widget_title"
-            android:textColor="#A6A8B3"
-            android:textSize="12sp" />
+        <include layout="@layout/world_day_night_widget_header" />
 
-        <TextView
-            android:id="@+id/day_night_widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:maxLines="1"
-            android:textColor="#A6A8B3"
-            android:textSize="12sp" />
+        <ImageView
+            android:id="@+id/day_night_widget_map"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:contentDescription="@string/day_night_widget_description"
+            android:scaleType="fitCenter" />
+
+        <LinearLayout
+            android:id="@+id/day_night_widget_details"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:layout_marginTop="8dp"
+            android:baselineAligned="false"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/day_night_widget_sunrise_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="@string/day_night_sunrise"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/day_night_widget_sunrise"
+                    android:layout_width="match_parent"
+                    android:layout_height="20dp"
+                    android:ellipsize="end"
+                    android:gravity="center_vertical"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/day_night_widget_sunset_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="@string/day_night_sunset"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/day_night_widget_sunset"
+                    android:layout_width="match_parent"
+                    android:layout_height="20dp"
+                    android:ellipsize="end"
+                    android:gravity="center_vertical"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
-
-    <ImageView
-        android:id="@+id/day_night_widget_map"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:contentDescription="@string/day_night_widget_description"
-        android:scaleType="fitCenter" />
-</LinearLayout>
+</FrameLayout>

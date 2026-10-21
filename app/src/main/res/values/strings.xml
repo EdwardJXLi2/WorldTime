@@ -13,4 +13,13 @@
     <string name="day_night_widget_title">DAY &amp; NIGHT</string>
     <string name="day_night_widget_description">World daylight, twilight, Sun and Moon positions, and your home time zone.</string>
     <string name="day_night_widget_map_description">World daylight map for %1$s. Dark shading shows night and lighter shading shows twilight. The highlighted region matches the standard UTC offset of %2$s. Sun and Moon icons show where each is overhead.</string>
+    <string name="day_night_sunrise">Sunrise</string>
+    <string name="day_night_sunset">Sunset</string>
+    <string name="day_night_approximate_time">~%1$s</string>
+    <string name="day_night_no_location">No city location</string>
+    <string name="day_night_polar_day">Polar day</string>
+    <string name="day_night_polar_night">Polar night</string>
+    <string name="day_night_no_sunrise">No sunrise</string>
+    <string name="day_night_no_sunset">No sunset</string>
+    <string name="day_night_event_description">%1$s: %2$s</string>
 </resources>

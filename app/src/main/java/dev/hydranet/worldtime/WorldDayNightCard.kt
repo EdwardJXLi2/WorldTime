@@ -39,7 +39,9 @@ import androidx.compose.ui.graphics.vector.VectorGroup
 import androidx.compose.ui.graphics.vector.VectorPath
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -69,6 +71,14 @@ internal fun WorldDayNightCard(selected: Instant, homeZone: ZoneId) {
         }
     }
     val homeLocation = cityLocations[homeZone.id]
+    val localDate = selected.atZone(homeZone).toLocalDate()
+    val daylightTimes by produceState<DaylightTimes?>(null, homeLocation, homeZone, localDate) {
+        value = null
+        value = homeLocation?.let { location ->
+            withContext(Dispatchers.Default) { DaylightTimes.on(localDate, homeZone, location) }
+        }
+    }
+    val details = dayNightDetails(LocalContext.current, selected, homeZone, daylightTimes)
     val sunIcon = rememberVectorPainter(Icons.Outlined.WbSunny)
     val moonIcon = rememberVectorPainter(Icons.Filled.NightlightRound)
     val nightPaths = remember(sun) { listOf(0.0, -6.0, -12.0).map { nightPath(sun, it) } }
@@ -156,6 +166,28 @@ internal fun WorldDayNightCard(selected: Instant, homeZone: ZoneId) {
                     val cityCenter = mapPoint(homeLocation)
                     drawCircle(colors.surfaceContainerHighest, radius = 4.5.dp.toPx(), center = cityCenter)
                     drawCircle(colors.primary, radius = 2.5.dp.toPx(), center = cityCenter)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(details.timeZone, style = MaterialTheme.typography.labelMedium, color = colors.onSurface)
+            Text(
+                "${details.localDate}  ${details.localTime}",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.day_night_sunrise),
+                        style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                    Text(if (homeLocation != null && daylightTimes == null) "…" else details.sunrise,
+                        style = MaterialTheme.typography.bodyMedium, color = colors.primary)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.day_night_sunset),
+                        style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                    Text(if (homeLocation != null && daylightTimes == null) "…" else details.sunset,
+                        style = MaterialTheme.typography.bodyMedium, color = colors.primary)
                 }
             }
         }

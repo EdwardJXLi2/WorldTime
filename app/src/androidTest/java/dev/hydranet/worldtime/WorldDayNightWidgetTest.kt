@@ -11,6 +11,7 @@ import android.util.DisplayMetrics
 import android.widget.ImageView
 import android.widget.TextView
 import android.view.View.MeasureSpec
+import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -38,7 +39,8 @@ class WorldDayNightWidgetTest {
             assertEquals(context.getString(R.string.day_night_widget_name), info.loadLabel(context.packageManager))
             assertTrue(info.resizeMode and 3 == 3)
 
-            val sizes = arrayListOf(SizeF(180f, 40f), SizeF(180f, 64f), SizeF(320f, 96f), SizeF(320f, 240f), SizeF(600f, 300f))
+            val sizes = arrayListOf(SizeF(180f, 40f), SizeF(180f, 64f), SizeF(180f, 112f),
+                SizeF(320f, 96f), SizeF(320f, 144f), SizeF(320f, 240f), SizeF(600f, 300f))
             val options = Bundle().apply {
                 putParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, sizes)
             }
@@ -61,8 +63,23 @@ class WorldDayNightWidgetTest {
                     val bitmap = drawable.bitmap
                     assertEquals(bitmap.width / 2, bitmap.height)
                     assertTrue(map.contentDescription.contains("UTC"))
-                    assertTrue(view.findViewById<TextView>(R.id.day_night_widget_time).text.endsWith("UTC"))
+                    assertTrue(view.findViewById<TextView>(R.id.day_night_widget_time).text.isNotBlank())
+                    assertTrue(view.findViewById<TextView>(R.id.day_night_widget_title).text.contains("UTC"))
+                    val sunrise = view.findViewById<TextView>(R.id.day_night_widget_sunrise)
+                    val sunset = view.findViewById<TextView>(R.id.day_night_widget_sunset)
+                    assertTrue(sunrise.text.isNotBlank())
+                    assertTrue(sunset.text.isNotBlank())
+                    val horizontal = view.findViewById<View>(R.id.day_night_widget_body) != null
+                    assertEquals(if (size.height >= if (horizontal) 96f else 112f) View.VISIBLE else View.GONE,
+                        view.findViewById<View>(R.id.day_night_widget_details).visibility)
                     assertTrue(map.width > 0 && map.height > 0)
+                    val header = view.findViewById<View>(R.id.day_night_widget_header)
+                    val content = view.findViewById<View>(R.id.day_night_widget_content)
+                    if (header.visibility == View.VISIBLE) assertEquals(content.width, header.width)
+                    if (!horizontal && header.visibility == View.VISIBLE) {
+                        assertEquals(header.left, map.left)
+                        assertEquals(header.right, map.right)
+                    }
                     val matrix = FloatArray(9)
                     map.imageMatrix.getValues(matrix)
                     val bitmapScale = matrix[Matrix.MSCALE_X] * drawable.intrinsicWidth / bitmap.width
